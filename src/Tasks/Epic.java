@@ -1,9 +1,11 @@
+package Tasks;
+
 import java.util.ArrayList;
 
 public class Epic extends Task {
     private ArrayList<Integer> subTasks = new ArrayList<>();
 
-    public Epic(String title, String description, String status) {
+    public Epic(String title, String description, Status status) {
         super(title, description, status);
     }
 

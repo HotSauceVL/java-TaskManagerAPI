@@ -1,3 +1,6 @@
+package Controller;
+
+import Tasks.*;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Map;
@@ -7,7 +10,7 @@ public class Manager {
     private static final Map<Integer, Task> task = new HashMap<>();
     private static final Map<Integer, Epic> epic = new HashMap<>();
     private static final Map<Integer, SubTask> subTask = new HashMap<>();
-    private final Task nullTask = new Task("Ошибка", "Такого ID не существует", "ERROR");
+    private final Task nullTask = new Task("Ошибка", "Такого ID не существует", Status.ERROR);
 
     int getNewID() {
         return ++taskID;
@@ -22,7 +25,7 @@ public class Manager {
     public int createEpic(Epic newEpic) {
         epic.put(getNewID(), newEpic);
         newEpic.setId(taskID);
-        newEpic.setStatus("NEW");
+        newEpic.setStatus(Status.NEW);
         return newEpic.getId();
     }
 
@@ -115,7 +118,7 @@ public class Manager {
     public void deleteAllSubTask() {
         subTask.clear();
         for (Epic epicObject : epic.values()) {
-            epicObject.setStatus("NEW");
+            epicObject.setStatus(Status.NEW);
             epicObject.clearSubTasks();
         }
     }
@@ -171,7 +174,7 @@ public class Manager {
             System.out.println("Ошибка! Эпика с таким ID не существует");
             ArrayList<SubTask> epicSubTasks = new ArrayList<>();
             epicSubTasks.add(new SubTask("Ошибка", "Эпика с таким ID не существует",
-                    "ERROR", -1));
+                    Status.ERROR, -1));
             return epicSubTasks;
         }
 
@@ -181,18 +184,20 @@ public class Manager {
         ArrayList<Integer> subTasksID = epic.get(epicID).getSubTasks();
 
         if (subTasksID.size() == 0) {
-            epic.get(epicID).setStatus("NEW");
+            epic.get(epicID).setStatus(Status.NEW);
             return;
         }
-        ArrayList<String> statusList = new ArrayList<>();
+        ArrayList<Status> statusList = new ArrayList<>();
         for (Integer subTaskID : subTasksID) {
             statusList.add(subTask.get(subTaskID).getStatus());
         }
-        if (statusList.contains("NEW") && !statusList.contains("IN_PROGRESS") && !statusList.contains("DONE")) {
-            epic.get(epicID).setStatus("NEW");
-        } else if (statusList.contains("DONE") && !statusList.contains("IN_PROGRESS") && !statusList.contains("NEW")) {
-            epic.get(epicID).setStatus("DONE");
+        if (statusList.contains(Status.NEW) && !statusList.contains(Status.IN_PROGRESS)
+                && !statusList.contains(Status.DONE)) {
+            epic.get(epicID).setStatus(Status.NEW);
+        } else if (statusList.contains(Status.DONE) && !statusList.contains(Status.IN_PROGRESS)
+                && !statusList.contains(Status.NEW)) {
+            epic.get(epicID).setStatus(Status.DONE);
         } else
-            epic.get(epicID).setStatus("IN_PROGRESS");
+            epic.get(epicID).setStatus(Status.IN_PROGRESS);
     }
 }

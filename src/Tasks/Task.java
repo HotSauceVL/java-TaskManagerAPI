@@ -1,20 +1,22 @@
+package Tasks;
+
 public class Task {
     private final String title;
     private final String description;
-    private String status;
+    private Status status;
     private int id;
 
-    public Task(String title, String description, String status) {
+    public Task(String title, String description, Status status) {
         this.title = title;
         this.description = description;
         this.status = status;
     }
 
-    public String getStatus() {
+    public Status getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(Status status) {
         this.status = status;
     }
 
