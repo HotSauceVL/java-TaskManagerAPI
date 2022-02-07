@@ -1,7 +1,7 @@
-package Controller;
+package сontroller;
 
-import Tasks.*;
-import Tasks.Status;
+import tasks.*;
+import tasks.Status;
 
 public class Main {
     public static void main(String[] args) {
