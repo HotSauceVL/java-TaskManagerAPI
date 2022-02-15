@@ -9,7 +9,7 @@ public class InMemoryHistoryManager implements HistoryManager {
     private static final List<Task> history = new ArrayList<>();
     @Override
     public void add(Task task) {
-        if (history.size() < 11) {
+        if (history.size() <= 10) {
             history.add(task);
         } else {
             history.remove(0);
@@ -29,7 +29,7 @@ public class InMemoryHistoryManager implements HistoryManager {
     }
 
     @Override
-    public void update(int id, Task newTask) {
+    public void update(long id, Task newTask) {
         for (int i = 0; i < history.size(); i++) {
             if (history.get(i).getId() == id) {
                 history.remove(i);
