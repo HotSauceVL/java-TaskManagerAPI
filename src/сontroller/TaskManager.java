@@ -1,8 +1,8 @@
 package сontroller;
 
-import tasks.Epic;
-import tasks.SubTask;
-import tasks.Task;
+import data.Epic;
+import data.SubTask;
+import data.Task;
 import java.util.List;
 
 public interface TaskManager {

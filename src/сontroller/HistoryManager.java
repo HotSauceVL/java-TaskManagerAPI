@@ -1,6 +1,6 @@
 package сontroller;
 
-import tasks.Task;
+import data.Task;
 
 import java.util.List;
 
