@@ -35,8 +35,8 @@ public class InMemoryHistoryManager implements HistoryManager {
         }
     }
 
-    @Override
-    public void update(long id, Task newTask) {
+
+    public static void update(long id, Task newTask) {
         if (historyMap.containsKey(id)) {
             historyMap.get(id).setTask(newTask);
         }
@@ -92,6 +92,7 @@ public class InMemoryHistoryManager implements HistoryManager {
                      historyMap.remove(node.getTask().getId());
         }
     }
+
 
 }
 

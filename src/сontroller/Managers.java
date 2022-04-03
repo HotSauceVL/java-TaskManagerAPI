@@ -1,12 +1,20 @@
 package сontroller;
 
+import java.io.File;
+
 public class Managers {
+    private final static TaskManager taskManager = new InMemoryTaskManager();
+    private final static HistoryManager historyManager = new InMemoryHistoryManager();
+    private final static FileBackedTasksManager fileBackedTasksManager =
+            new FileBackedTasksManager(new File("src/data/TaskData.csv"));
 
-    public TaskManager getDefault() {
-        return new InMemoryTaskManager();
+    public static TaskManager getDefaultTaskManager() {
+        return taskManager;
     }
-
-    static HistoryManager getDefaultHistory() {
-        return new InMemoryHistoryManager();
+    public static HistoryManager getDefaultHistoryManager() {
+        return historyManager;
+    }
+    public static FileBackedTasksManager getDefaultFileBackedTasksManager() {
+        return fileBackedTasksManager;
     }
 }

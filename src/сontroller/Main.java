@@ -3,12 +3,17 @@ package сontroller;
 import data.*;
 import data.Status;
 
+import java.io.File;
+
 public class Main {
     public static void main(String[] args) {
-        Managers managers = new Managers();
 
-        TaskManager taskManager = managers.getDefault();
-        HistoryManager historyManager = Managers.getDefaultHistory();
+        File file = new File("src/data/TaskData.csv");
+        FileBackedTasksManager taskManager = Managers.getDefaultFileBackedTasksManager();
+        FileBackedTasksManager secondTaskManager =
+                new FileBackedTasksManager(file);
+
+
 
         long firstEpic = taskManager.createEpic(new Epic("Эпик 1", "Описание 1", Status.NEW));
         long firstSubTask = taskManager.createSubTask(new SubTask("Подзадача 1 Эпика 1",
@@ -24,31 +29,24 @@ public class Main {
         long secondTask = taskManager.createTask(new Task("Задача 2", "Описание", Status.DONE));
 
         taskManager.getByID(firstEpic);
-        System.out.println("История" + historyManager.getHistory());
         taskManager.getByID(firstEpic);
-        System.out.println("История" + historyManager.getHistory());
         taskManager.getByID(secondEpic);
-        System.out.println("История" + historyManager.getHistory());
         taskManager.getByID(thirdSubTask);
-        System.out.println("История" + historyManager.getHistory());
         taskManager.getByID(firstSubTask);
-        System.out.println("История" + historyManager.getHistory());
         taskManager.getByID(firstEpic);
-        System.out.println("История" + historyManager.getHistory());
         taskManager.getByID(firstTask);
-        System.out.println("История" + historyManager.getHistory());
         taskManager.getByID(secondSubTask);
-        System.out.println("История" + historyManager.getHistory());
         taskManager.getByID(secondTask);
-        System.out.println("История" + historyManager.getHistory());
         taskManager.getByID(firstEpic);
-        System.out.println("История" + historyManager.getHistory());
+        System.out.println("История" + taskManager.history());
+        System.out.println(taskManager.getEpicList());
+        System.out.println(taskManager.getTaskList());
+        System.out.println(taskManager.getSubTaskList());
 
-        taskManager.deleteByID(firstTask);
-        System.out.println("История" + historyManager.getHistory());
-
-        taskManager.deleteByID(firstEpic);
-        System.out.println("История" + historyManager.getHistory());
-
+        secondTaskManager.loadFromFile();
+        System.out.println("История" + secondTaskManager.history());
+        System.out.println(secondTaskManager.getEpicList());
+        System.out.println(secondTaskManager.getTaskList());
+        System.out.println(secondTaskManager.getSubTaskList());
     }
 }

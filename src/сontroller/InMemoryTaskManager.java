@@ -8,14 +8,34 @@ import java.util.List;
 
 public class InMemoryTaskManager implements TaskManager {
     private static long taskID = 0;
-    private static final Map<Long, Task> task = new HashMap<>();
-    private static final Map<Long, Epic> epic = new HashMap<>();
-    private static final Map<Long, SubTask> subTask = new HashMap<>();
-    private static final HistoryManager historyManager = new InMemoryHistoryManager();
+    protected static final Map<Long, Task> task = new HashMap<>();
+    protected static final Map<Long, Epic> epic = new HashMap<>();
+    protected static final Map<Long, SubTask> subTask = new HashMap<>();
+    protected static final HistoryManager historyManager = new InMemoryHistoryManager();
     private final Task nullTask = new Task("Ошибка", "Такого ID не существует", Status.ERROR);
 
     long getNewID() {
         return ++taskID;
+    }
+
+    long getTaskID() {
+        return taskID;
+    }
+
+    void setTaskID(long id) {
+        taskID = id;
+    }
+
+    void putTask(Task loadedTask) {
+        task.put(loadedTask.getId(), loadedTask);
+    }
+
+    void putEpic(Epic loadedEpic) {
+        epic.put(loadedEpic.getId(), loadedEpic);
+    }
+
+    void putSubTask(SubTask loadedSubTask) {
+        subTask.put(loadedSubTask.getId(), loadedSubTask);
     }
 
     @Override
@@ -38,7 +58,7 @@ public class InMemoryTaskManager implements TaskManager {
         if (epic.containsKey(newSubTask.getEpicID())) {
             subTask.put(getNewID(), newSubTask);
             newSubTask.setId(taskID);
-            epic.get(newSubTask.getEpicID()).addSubTasks(taskID);
+            epic.get(newSubTask.getEpicID()).addSubTask(taskID);
             updateEpicStatus(newSubTask.getEpicID());
             return newSubTask.getId();
         } else {
@@ -52,7 +72,7 @@ public class InMemoryTaskManager implements TaskManager {
         if (task.containsKey(id)) {
             task.put(id, newTask);
             newTask.setId(id);
-            historyManager.update(id, newTask);
+            InMemoryHistoryManager.update(id, newTask);
         } else {
             System.out.println("Нет задачи с таким ID");
             return;
@@ -62,13 +82,13 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void updateEpic(long id, Epic newEpic) {
         if (epic.containsKey(id)) {
-            historyManager.update(id, newEpic);
+            InMemoryHistoryManager.update(id, newEpic);
             epic.put(id, newEpic);
             newEpic.setId(id);
             updateEpicStatus(id);
             for (SubTask subTaskObject : subTask.values()) {
                 if (subTaskObject.getEpicID() == id) {
-                    newEpic.addSubTasks(subTaskObject.getId());
+                    newEpic.addSubTask(subTaskObject.getId());
                 }
             }
         } else {
@@ -83,10 +103,10 @@ public class InMemoryTaskManager implements TaskManager {
             if (epic.containsKey(newSubTask.getEpicID())) {
                 if (subTask.get(id).getEpicID() != newSubTask.getEpicID()) {
                     epic.get(subTask.get(id).getEpicID()).deleteSubTask(id);
-                    epic.get(newSubTask.getEpicID()).addSubTasks(id);
+                    epic.get(newSubTask.getEpicID()).addSubTask(id);
                     updateEpicStatus(subTask.get(id).getEpicID());
                 }
-                historyManager.update(id, newSubTask);
+                InMemoryHistoryManager.update(id, newSubTask);
                 subTask.put(id, newSubTask);
                 newSubTask.setId(id);
                 updateEpicStatus(newSubTask.getEpicID());
@@ -181,7 +201,7 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public Task getByID(long id) {
         if (task.containsKey(id) || epic.containsKey(id) || subTask.containsKey(id)) {
-            Task container = null;
+            Task container = nullTask;
 
             if (task.containsKey(id)) {
                 container = task.get(id);
@@ -236,5 +256,10 @@ public class InMemoryTaskManager implements TaskManager {
             epic.get(epicID).setStatus(Status.DONE);
         } else
             epic.get(epicID).setStatus(Status.IN_PROGRESS);
+    }
+
+    @Override
+    public List<Task> history() {
+        return historyManager.getHistory();
     }
 }

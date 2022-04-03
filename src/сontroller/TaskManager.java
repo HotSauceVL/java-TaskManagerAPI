@@ -21,4 +21,5 @@ public interface TaskManager {
     void deleteByID(long id);
     Task getByID(long id);
     List<SubTask> getEpicSubTasks(long epicID);
+    List<Task> history();
 }
