@@ -18,23 +18,23 @@ public class InMemoryTaskManager implements TaskManager {
         return ++taskID;
     }
 
-    long getTaskID() {
+    static long getTaskID() {
         return taskID;
     }
 
-    void setTaskID(long id) {
+    static void setTaskID(long id) {
         taskID = id;
     }
 
-    void putTask(Task loadedTask) {
+    static void putTask(Task loadedTask) {
         task.put(loadedTask.getId(), loadedTask);
     }
 
-    void putEpic(Epic loadedEpic) {
+    static void putEpic(Epic loadedEpic) {
         epic.put(loadedEpic.getId(), loadedEpic);
     }
 
-    void putSubTask(SubTask loadedSubTask) {
+    static void putSubTask(SubTask loadedSubTask) {
         subTask.put(loadedSubTask.getId(), loadedSubTask);
     }
 
