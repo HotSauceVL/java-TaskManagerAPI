@@ -1,6 +1,9 @@
 package сontroller;
 
 import data.*;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Map;
@@ -12,7 +15,8 @@ public class InMemoryTaskManager implements TaskManager {
     protected static final Map<Long, Epic> epic = new HashMap<>();
     protected static final Map<Long, SubTask> subTask = new HashMap<>();
     protected static final HistoryManager historyManager = new InMemoryHistoryManager();
-    private final Task nullTask = new Task("Ошибка", "Такого ID не существует", Status.ERROR);
+    private final Task nullTask = new Task("Ошибка", "Такого ID не существует", Status.ERROR,
+            LocalDateTime.now(),  Duration.between(LocalDateTime.now(), LocalDateTime.now()));
 
     long getNewID() {
         return ++taskID;
@@ -60,10 +64,10 @@ public class InMemoryTaskManager implements TaskManager {
             newSubTask.setId(taskID);
             epic.get(newSubTask.getEpicID()).addSubTask(taskID);
             updateEpicStatus(newSubTask.getEpicID());
+            updateEpicStartAndEndTime(newSubTask.getEpicID());
             return newSubTask.getId();
         } else {
-            System.out.println("Нельзя добавить подзадачу для несуществующего эпика");
-            return -1;
+            throw new IllegalArgumentException ("Нельзя добавить подзадачу для несуществующего эпика");
         }
     }
 
@@ -74,8 +78,7 @@ public class InMemoryTaskManager implements TaskManager {
             newTask.setId(id);
             InMemoryHistoryManager.update(id, newTask);
         } else {
-            System.out.println("Нет задачи с таким ID");
-            return;
+            throw new IllegalArgumentException ("Нет задачи с таким ID");
         }
     }
 
@@ -85,15 +88,15 @@ public class InMemoryTaskManager implements TaskManager {
             InMemoryHistoryManager.update(id, newEpic);
             epic.put(id, newEpic);
             newEpic.setId(id);
-            updateEpicStatus(id);
             for (SubTask subTaskObject : subTask.values()) {
                 if (subTaskObject.getEpicID() == id) {
                     newEpic.addSubTask(subTaskObject.getId());
                 }
             }
+            updateEpicStatus(id);
+            updateEpicStartAndEndTime(id);
         } else {
-            System.out.println("Нет эпика с таким ID");
-            return;
+            throw new IllegalArgumentException ("Нет эпика с таким ID");
         }
     }
 
@@ -105,17 +108,18 @@ public class InMemoryTaskManager implements TaskManager {
                     epic.get(subTask.get(id).getEpicID()).deleteSubTask(id);
                     epic.get(newSubTask.getEpicID()).addSubTask(id);
                     updateEpicStatus(subTask.get(id).getEpicID());
+                    updateEpicStartAndEndTime(subTask.get(id).getEpicID());
                 }
                 InMemoryHistoryManager.update(id, newSubTask);
                 subTask.put(id, newSubTask);
                 newSubTask.setId(id);
                 updateEpicStatus(newSubTask.getEpicID());
+                updateEpicStartAndEndTime(subTask.get(id).getEpicID());
             } else {
-                System.out.println("Нельзя добавить подзадачу для несуществующего эпика");
+                throw new IllegalArgumentException("Нельзя добавить подзадачу для несуществующего эпика");
             }
         } else {
-            System.out.println("Нет подзадачи с таким ID");
-            return;
+            throw new IllegalArgumentException("Нет подзадачи с таким ID");
         }
     }
 
@@ -193,8 +197,7 @@ public class InMemoryTaskManager implements TaskManager {
                 subTask.remove(id);
             }
         } else {
-            System.out.println("Ошибка! Такого ID не существует");
-            return;
+            throw new IllegalArgumentException ("Такого ID не существует");
         }
     }
 
@@ -213,8 +216,7 @@ public class InMemoryTaskManager implements TaskManager {
             historyManager.add(container);
             return container;
         } else {
-            System.out.println("Ошибка! Такого ID не существует");
-            return nullTask;
+            throw new IllegalArgumentException("Такого ID не существует");
         }
     }
 
@@ -228,11 +230,7 @@ public class InMemoryTaskManager implements TaskManager {
             }
             return epicSubTasks;
         } else {
-            System.out.println("Ошибка! Эпика с таким ID не существует");
-            List<SubTask> epicSubTasks = new ArrayList<>();
-            epicSubTasks.add(new SubTask("Ошибка", "Эпика с таким ID не существует",
-                    Status.ERROR, -1));
-            return epicSubTasks;
+            throw new IllegalArgumentException("Эпика с таким ID не существует");
         }
 
     }
@@ -256,6 +254,34 @@ public class InMemoryTaskManager implements TaskManager {
             epic.get(epicID).setStatus(Status.DONE);
         } else
             epic.get(epicID).setStatus(Status.IN_PROGRESS);
+    }
+
+    private void updateEpicStartAndEndTime(long epicID) {
+        ArrayList<Long> subTasksID = epic.get(epicID).getSubTasks();
+
+        if (subTasksID.size() == 0) {
+            return;
+        }
+        LocalDateTime startTime = LocalDateTime.MIN;
+        LocalDateTime endTime = LocalDateTime.MIN;
+        Duration epicDuration = Duration.ZERO;
+        for (Long subTaskID : subTasksID) {
+            if (subTask.get(subTaskID).getStartTime() != null) {
+                if (startTime.isAfter(subTask.get(subTaskID).getStartTime())) {
+                    startTime = subTask.get(subTaskID).getStartTime();
+                }
+                if (endTime.isBefore(subTask.get(subTaskID).getEndTime())) {
+                    endTime = subTask.get(subTaskID).getEndTime();
+                }
+                epicDuration.plus(subTask.get(subTaskID).getDuration());
+            }
+        }
+        if (startTime == LocalDateTime.MIN) {
+            return;
+        }
+        epic.get(epicID).setDuration(epicDuration);
+        epic.get(epicID).setStartTime(startTime);
+        epic.get(epicID).setEndTime(endTime);
     }
 
     @Override

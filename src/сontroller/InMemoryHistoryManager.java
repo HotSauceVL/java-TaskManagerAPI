@@ -92,8 +92,6 @@ public class InMemoryHistoryManager implements HistoryManager {
                      historyMap.remove(node.getTask().getId());
         }
     }
-
-
 }
 
 
