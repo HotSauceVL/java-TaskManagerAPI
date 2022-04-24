@@ -4,19 +4,28 @@ import data.*;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.List;
+import java.util.*;
 
 public class InMemoryTaskManager implements TaskManager {
     private static long taskID = 0;
-    protected static final Map<Long, Task> task = new HashMap<>();
+    protected static final Map<Long, Task> task = new HashMap<>(); // в слаке началось обсуждение о том что эти Мапы
+    // не должны быть статическими, насколько это корректно? Вместе с тем, если они не статик,
+    // не очень понятно как работать с ними в методе loadFromFile
     protected static final Map<Long, Epic> epic = new HashMap<>();
     protected static final Map<Long, SubTask> subTask = new HashMap<>();
-    protected static final HistoryManager historyManager = new InMemoryHistoryManager();
+    protected final HistoryManager historyManager = new InMemoryHistoryManager();
     private final Task nullTask = new Task("Ошибка", "Такого ID не существует", Status.ERROR,
             LocalDateTime.now(),  Duration.between(LocalDateTime.now(), LocalDateTime.now()));
+    private static final Comparator<Task> comparator = (o1, o2) -> {
+            if (o1.getStartTime().isEmpty()) return 1;
+            if (o2.getStartTime().isEmpty()) return -1;
+            if (o1.getStartTime().get().isBefore(o2.getStartTime().get())) {
+                return -1;
+            } else if (o2.getStartTime().get().isBefore(o1.getStartTime().get())) {
+                return 1;
+            } else return 0;
+    };
+    private static TreeSet<Task> prioritizedTasks = new TreeSet<>(comparator);
 
     long getNewID() {
         return ++taskID;
@@ -44,9 +53,13 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public long createTask(Task newTask) {
-        task.put(getNewID(), newTask);
-        newTask.setId(taskID);
-        return newTask.getId();
+        if (isValidStartEndTime(newTask)) {
+            task.put(getNewID(), newTask);
+            newTask.setId(taskID);
+            updatePrioritizedTasks();
+            return newTask.getId();
+        } else
+            throw new IllegalArgumentException("Не удалось добавить задачу");
     }
 
     @Override
@@ -60,12 +73,16 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public long createSubTask(SubTask newSubTask) {
         if (epic.containsKey(newSubTask.getEpicID())) {
-            subTask.put(getNewID(), newSubTask);
-            newSubTask.setId(taskID);
-            epic.get(newSubTask.getEpicID()).addSubTask(taskID);
-            updateEpicStatus(newSubTask.getEpicID());
-            updateEpicStartAndEndTime(newSubTask.getEpicID());
-            return newSubTask.getId();
+            if (isValidStartEndTime(newSubTask)) {
+                subTask.put(getNewID(), newSubTask);
+                newSubTask.setId(taskID);
+                epic.get(newSubTask.getEpicID()).addSubTask(taskID);
+                updateEpicStatus(newSubTask.getEpicID());
+                updateEpicStartAndEndTime(newSubTask.getEpicID());
+                updatePrioritizedTasks();
+                return newSubTask.getId();
+            } else
+                throw new IllegalArgumentException("Не удалось добавить подзадачу");
         } else {
             throw new IllegalArgumentException ("Нельзя добавить подзадачу для несуществующего эпика");
         }
@@ -74,9 +91,13 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void updateTask (long id, Task newTask) {
         if (task.containsKey(id)) {
-            task.put(id, newTask);
-            newTask.setId(id);
-            InMemoryHistoryManager.update(id, newTask);
+            if (isValidStartEndTime(newTask)) {
+                newTask.setId(id);
+                updatePrioritizedTasks();
+                task.put(id, newTask);
+                InMemoryHistoryManager.update(id, newTask);
+            } else
+                throw new IllegalArgumentException("Не удалось обновить задачу");
         } else {
             throw new IllegalArgumentException ("Нет задачи с таким ID");
         }
@@ -104,17 +125,21 @@ public class InMemoryTaskManager implements TaskManager {
     public void updateSubTask(long id, SubTask newSubTask) {
         if (subTask.containsKey(id)) {
             if (epic.containsKey(newSubTask.getEpicID())) {
-                if (subTask.get(id).getEpicID() != newSubTask.getEpicID()) {
-                    epic.get(subTask.get(id).getEpicID()).deleteSubTask(id);
-                    epic.get(newSubTask.getEpicID()).addSubTask(id);
-                    updateEpicStatus(subTask.get(id).getEpicID());
+                if (isValidStartEndTime(newSubTask)) {
+                    if (subTask.get(id).getEpicID() != newSubTask.getEpicID()) {
+                        epic.get(subTask.get(id).getEpicID()).deleteSubTask(id);
+                        epic.get(newSubTask.getEpicID()).addSubTask(id);
+                        updateEpicStatus(subTask.get(id).getEpicID());
+                        updateEpicStartAndEndTime(subTask.get(id).getEpicID());
+                    }
+                    InMemoryHistoryManager.update(id, newSubTask);
+                    subTask.put(id, newSubTask);
+                    newSubTask.setId(id);
+                    updateEpicStatus(newSubTask.getEpicID());
                     updateEpicStartAndEndTime(subTask.get(id).getEpicID());
-                }
-                InMemoryHistoryManager.update(id, newSubTask);
-                subTask.put(id, newSubTask);
-                newSubTask.setId(id);
-                updateEpicStatus(newSubTask.getEpicID());
-                updateEpicStartAndEndTime(subTask.get(id).getEpicID());
+                    updatePrioritizedTasks();
+                } else
+                    throw new IllegalArgumentException("Не удалось обновить подзадачу");
             } else {
                 throw new IllegalArgumentException("Нельзя добавить подзадачу для несуществующего эпика");
             }
@@ -149,6 +174,7 @@ public class InMemoryTaskManager implements TaskManager {
         for (Task taskToRemove : task.values()) {
             historyManager.remove(taskToRemove);
         }
+        updatePrioritizedTasks();
         task.clear();
     }
 
@@ -161,6 +187,7 @@ public class InMemoryTaskManager implements TaskManager {
         for (SubTask subTaskToRemove : subTask.values()) {
             historyManager.remove(subTaskToRemove);
         }
+        updatePrioritizedTasks();
         subTask.clear();
     }
 
@@ -169,6 +196,7 @@ public class InMemoryTaskManager implements TaskManager {
         for (SubTask subTaskToRemove : subTask.values()) {
             historyManager.remove(subTaskToRemove);
         }
+        updatePrioritizedTasks();
         subTask.clear();
         for (Epic epicObject : epic.values()) {
             epicObject.setStatus(Status.NEW);
@@ -181,11 +209,13 @@ public class InMemoryTaskManager implements TaskManager {
         if (task.containsKey(id) || epic.containsKey(id) || subTask.containsKey(id)) {
             if (task.containsKey(id)) {
                 historyManager.remove(task.get(id));
+                prioritizedTasks.remove(task.get(id));
                 task.remove(id);
             } else if (epic.containsKey(id)) {
                 ArrayList<Long> subTasksID = epic.get(id).getSubTasks();
                 for (Long subTaskID : subTasksID) {
                     historyManager.remove(subTask.get(subTaskID));
+                    prioritizedTasks.remove(subTask.get(subTaskID));
                     subTask.remove(subTaskID);
                 }
                 historyManager.remove(epic.get(id));
@@ -194,6 +224,7 @@ public class InMemoryTaskManager implements TaskManager {
                 epic.get(subTask.get(id).getEpicID()).deleteSubTask(id);
                 updateEpicStatus(subTask.get(id).getEpicID());
                 historyManager.remove(subTask.get(id));
+                prioritizedTasks.remove(subTask.get(id));
                 subTask.remove(id);
             }
         } else {
@@ -266,26 +297,67 @@ public class InMemoryTaskManager implements TaskManager {
         LocalDateTime endTime = LocalDateTime.MIN;
         Duration epicDuration = Duration.ZERO;
         for (Long subTaskID : subTasksID) {
-            if (subTask.get(subTaskID).getStartTime() != null) {
-                if (startTime.isAfter(subTask.get(subTaskID).getStartTime())) {
-                    startTime = subTask.get(subTaskID).getStartTime();
+            if (subTask.get(subTaskID).getStartTime().isPresent()) {
+                if (startTime.isAfter(subTask.get(subTaskID).getStartTime().get())) {
+                    startTime = subTask.get(subTaskID).getStartTime().get();
                 }
-                if (endTime.isBefore(subTask.get(subTaskID).getEndTime())) {
-                    endTime = subTask.get(subTaskID).getEndTime();
+                if (endTime.isBefore(subTask.get(subTaskID).getEndTime().get())) {
+                    endTime = subTask.get(subTaskID).getEndTime().get();
                 }
                 epicDuration.plus(subTask.get(subTaskID).getDuration());
             }
         }
-        if (startTime == LocalDateTime.MIN) {
-            return;
+        if (startTime != LocalDateTime.MIN) {
+            epic.get(epicID).setDuration(epicDuration);
+            epic.get(epicID).setStartTime(startTime);
+            epic.get(epicID).setEndTime(endTime);
         }
-        epic.get(epicID).setDuration(epicDuration);
-        epic.get(epicID).setStartTime(startTime);
-        epic.get(epicID).setEndTime(endTime);
     }
 
     @Override
     public List<Task> history() {
         return historyManager.getHistory();
+    }
+
+    protected static void updatePrioritizedTasks() { // появилось ощущение, что пишу ****код (хотя вроде все работает),
+        // критика приветствуется=)
+        prioritizedTasks.clear();
+        if (task.size() != 0)
+        prioritizedTasks.addAll(task.values());
+        if (subTask.size() != 0)
+        prioritizedTasks.addAll(subTask.values());
+    }
+
+    private boolean isValidStartEndTime(Task task) {
+        if (task.getStartTime().isEmpty())
+            return true;
+        List<Task> sortedTasks = getPrioritizedTasks();
+        boolean isValidStartTime = true;
+        boolean isValidEndTime = true;
+        for (Task sortedTask : sortedTasks) {
+            if (sortedTask.getStartTime().isPresent()) {
+                if (task.getStartTime().get().isAfter(sortedTask.getStartTime().get()) &&
+                        task.getStartTime().get().isBefore(sortedTask.getEndTime().get()) ||
+                        task.getStartTime().equals(sortedTask.getStartTime())) {
+                    isValidStartTime = false;
+                }
+                if (task.getEndTime().get().isAfter(sortedTask.getStartTime().get()) &&
+                        task.getEndTime().get().isBefore(sortedTask.getEndTime().get()) ||
+                        task.getEndTime().equals(sortedTask.getEndTime())) {
+                    isValidEndTime = false;
+                }
+            }
+        }
+        if (isValidStartTime && isValidEndTime)
+           return true;
+        else if (!isValidStartTime)
+            throw new IllegalArgumentException("Задача не может начинаться во время выполнения другой задачи");
+        else
+            throw new IllegalArgumentException("Задача не может завершаться позже начала новой задачи");
+    }
+
+    @Override
+    public List<Task> getPrioritizedTasks() { // Исходя из ТЗ эпиков в этом списке нет
+        return new ArrayList<>(prioritizedTasks);
     }
 }

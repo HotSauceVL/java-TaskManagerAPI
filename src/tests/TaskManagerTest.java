@@ -3,13 +3,13 @@ import data.Epic;
 import data.Status;
 import data.SubTask;
 import data.Task;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 import сontroller.TaskManager;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,21 +23,30 @@ abstract class TaskManagerTest <T extends TaskManager> {
     SubTask subTask2;
     Task task1;
     Task task2;
+    Duration duration = Duration.ofHours(3);
 
     abstract void setTaskManager();
 
     @BeforeEach
     public void beforeEach() {
         setTaskManager();
-        taskManager.deleteAllEpic();
-        taskManager.deleteAllTask();
         epic1 = new Epic("Эпик 1", "Описание 1", Status.DONE);
         epic2 = new Epic("Эпик 2", "Описание 2", Status.IN_PROGRESS);
         epicId = taskManager.createEpic(epic1);
-        subTask1 = new SubTask("Подзадача 1 Эпика 1","Описание", Status.NEW, epicId);
-        subTask2 = new SubTask("Подзадача 2 Эпика 1","Описание", Status.DONE, epicId);
-        task1 = new Task("Задача 1", "Описание", Status.IN_PROGRESS);
+        subTask1 = new SubTask("Подзадача 1 Эпика 1","Описание", Status.NEW,
+                LocalDateTime.of(2022, 4,23, 12, 0), duration, epicId);
+        subTask2 = new SubTask("Подзадача 2 Эпика 1","Описание", Status.DONE,
+                LocalDateTime.of(2022, 4,24, 15, 0), duration, epicId);
+        task1 = new Task("Задача 1", "Описание", Status.IN_PROGRESS,
+                LocalDateTime.of(2022, 4,24, 12, 0), duration);
         task2 = new Task("Задача 2", "Описание", Status.DONE);
+    }
+
+    @AfterEach
+    public void afterEach() {
+        taskManager.deleteAllEpic();
+        taskManager.deleteAllTask();
+        taskManager.deleteAllSubTask();
     }
 
     @Test
@@ -303,5 +312,49 @@ abstract class TaskManagerTest <T extends TaskManager> {
                 "Описание", Status.IN_PROGRESS, epicId));
         assertEquals(Status.IN_PROGRESS, taskManager.getByID(epicId).getStatus(),
                 "Статус не равен IN_PROGRESS при подзадачах со статусом IN_PROGRESS");
+    }
+
+    @Test
+    public void getPrioritizedTasksTest() {
+        long task1Id = taskManager.createTask(new Task("Задача 1", "Описание", Status.IN_PROGRESS,
+                LocalDateTime.of(2022, 4,21, 12, 0), duration));
+        long task2Id = taskManager.createTask(new Task("Задача 2", "Описание", Status.DONE));
+        long subTask1Id = taskManager.createSubTask(new SubTask("Подзадача 1 Эпика 1","Описание",
+                Status.NEW, LocalDateTime.of(2022, 4,24, 12, 0), duration, epicId));
+        long subTask2Id = taskManager.createSubTask(new SubTask("Подзадача 1 Эпика 1","Описание",
+                Status.NEW, LocalDateTime.of(2022, 4,24, 15, 0), duration, epicId));
+
+        assertEquals(4 , taskManager.getPrioritizedTasks().size(),
+                "Не все задачи добавлены в список приоритетных задач");
+        assertEquals(taskManager.getByID(task1Id), taskManager.getPrioritizedTasks().get(0),
+                "Приоритет задач рассчитывается с ошибкой");
+        assertEquals(taskManager.getByID(subTask1Id), taskManager.getPrioritizedTasks().get(1),
+                "Приоритет задач рассчитывается с ошибкой," +
+                        " при совпадении даты старта новой задачи с датой окончания предыдущей");
+        assertEquals(taskManager.getByID(subTask2Id), taskManager.getPrioritizedTasks().get(2),
+                "Приоритет задач рассчитывается с ошибкой," +
+                        " при совпадении даты старта новой задачи с датой окончания предыдущей");
+        assertEquals(taskManager.getByID(task2Id), taskManager.getPrioritizedTasks().get(3),
+                "Приоритет задач рассчитывается с ошибкой, пустая задача не перемещается в конец списка");
+
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> taskManager.updateTask(task1Id, new Task("Задача 1", "Описание", Status.IN_PROGRESS,
+                        LocalDateTime.of(2022, 4,24, 12, 0), duration)));
+        assertEquals("Задача не может начинаться во время выполнения другой задачи", exception.getMessage(),
+                "Неправильная работа при пересечении даты старта задачи");
+
+        exception = assertThrows(IllegalArgumentException.class,
+                () -> taskManager.updateTask(task1Id, new Task("Задача 1", "Описание", Status.IN_PROGRESS,
+                        LocalDateTime.of(2022, 4,24, 11, 0), duration)));
+        assertEquals("Задача не может завершаться позже начала новой задачи", exception.getMessage(),
+                "Неправильная работа при пересечении даты окончания задачи с датой старта новой");
+
+
+        exception = assertThrows(IllegalArgumentException.class,
+                () -> taskManager.updateTask(task1Id, new Task("Задача 1", "Описание", Status.IN_PROGRESS,
+                        LocalDateTime.of(2022, 4,24, 11, 0), Duration.ofHours(4))));
+        assertEquals("Задача не может завершаться позже начала новой задачи", exception.getMessage(),
+                "Неправильная работа при пересечении даты окончания задачи с датой окончания новой задачи");
     }
 }

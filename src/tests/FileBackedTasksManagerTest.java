@@ -4,12 +4,8 @@ import data.Status;
 import data.SubTask;
 import org.junit.jupiter.api.Test;
 import сontroller.FileBackedTasksManager;
-import сontroller.InMemoryTaskManager;
 import сontroller.Managers;
-import сontroller.TaskManager;
-
 import java.io.File;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 class FileBackedTasksManagerTest extends TaskManagerTest<FileBackedTasksManager> {

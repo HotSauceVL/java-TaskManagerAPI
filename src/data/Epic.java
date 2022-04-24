@@ -1,26 +1,25 @@
 package data;
 
-import сontroller.InMemoryTaskManager;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Optional;
 
 public class Epic extends Task {
     private final ArrayList<Long> subTasks = new ArrayList<>();
-    private LocalDateTime endTime;
+    private Optional<LocalDateTime> endTime;
 
     public Epic(String title, String description, Status status) {
         super(title, description, status);
-        super.startTime = LocalDateTime.now();
-        this.endTime = LocalDateTime.now();
+        super.startTime = Optional.empty();
+        this.endTime = Optional.empty();
         super.duration = Duration.ZERO;
     }
 
     public Epic(long id, String title, String description, Status status) {
         super(id, title, description, status);
-        super.startTime = LocalDateTime.now();
-        this.endTime = LocalDateTime.now();
+        super.startTime = Optional.empty();
+        this.endTime = Optional.empty();
         super.duration = Duration.ZERO;
     }
 
@@ -41,12 +40,12 @@ public class Epic extends Task {
     }
 
     @Override
-    public LocalDateTime getEndTime() {
+    public Optional<LocalDateTime> getEndTime() {
         return endTime;
     }
 
     public void setEndTime(LocalDateTime endTime) {
-        this.endTime = endTime;
+        this.endTime = Optional.of(endTime);
     }
 
     @Override

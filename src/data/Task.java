@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Objects;
+import java.util.Optional;
 
 public class Task {
     protected String title;
@@ -12,14 +13,14 @@ public class Task {
     protected Status status;
     protected long id;
     protected Duration duration;
-    protected LocalDateTime startTime;
+    protected Optional<LocalDateTime> startTime;
     protected static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy: HH.mm");
 
     public Task (String title, String description, Status status) {
         this.title = title;
         this.description = description;
         this.status = status;
-        this.startTime = null;
+        this.startTime = Optional.empty();
         this.duration = Duration.ZERO;
     }
 
@@ -28,14 +29,14 @@ public class Task {
         this.title = title;
         this.description = description;
         this.status = status;
-        this.startTime = null;
+        this.startTime = Optional.empty();
         this.duration = Duration.ZERO;
     }
     public Task(String title, String description, Status status, LocalDateTime startTime, Duration duration) {
         this.title = title;
         this.description = description;
         this.status = status;
-        this.startTime = startTime;
+        this.startTime = Optional.of(startTime);
         this.duration = duration;
     }
 
@@ -45,7 +46,7 @@ public class Task {
         this.title = title;
         this.description = description;
         this.status = status;
-        this.startTime = startTime;
+        this.startTime = Optional.of(startTime);
         this.duration = duration;
     }
 
@@ -61,12 +62,12 @@ public class Task {
         this.duration = duration;
     }
 
-    public LocalDateTime getStartTime() {
+    public Optional<LocalDateTime> getStartTime() {
         return startTime;
     }
 
     public void setStartTime(LocalDateTime startTime) {
-        this.startTime = startTime;
+        this.startTime = Optional.of(startTime);
     }
 
     public Status getStatus() {
@@ -93,18 +94,28 @@ public class Task {
         return description;
     }
 
-    public LocalDateTime getEndTime() {
-        return startTime.plus(duration);
+    public Optional<LocalDateTime> getEndTime() {
+        return startTime.map(localDateTime -> localDateTime.plus(duration));
     }
 
     @Override
     public String toString() {
+        if (startTime.isPresent())
         return "Task{" +
                 "title='" + title + '\'' +
                 ", description='" + description + '\'' +
                 ", status='" + status + '\'' +
-                ", id=" + id +
+                ", id=" + id + '\'' +
+                ", StartTime='" + startTime.get().format(formatter) + '\'' +
+                ", EndTime='" + getEndTime().get().format(formatter) + '\'' +
                 '}';
+        else
+            return "Task{" +
+                    "title='" + title + '\'' +
+                    ", description='" + description + '\'' +
+                    ", status='" + status + '\'' +
+                    ", id=" + id +
+                    '}';
     }
 
     @Override
@@ -117,11 +128,11 @@ public class Task {
     }
 
     public String taskToString() {
-        if (startTime == null) {
+        if (startTime.isEmpty()) {
             return String.format("%s,%s,%s,%s,%s\n", id, TaskType.TASK, title, status, description);
         } else {
             return String.format("%s,%s,%s,%s,%s,%s,%s\n", id, TaskType.TASK, title, status, description,
-                    startTime.format(formatter), duration.toString());
+                    startTime.get().format(formatter), duration.toString());
         }
     }
 }

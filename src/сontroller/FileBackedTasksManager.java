@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
+
 public class FileBackedTasksManager extends InMemoryTaskManager{
     private final File taskData;
     public  FileBackedTasksManager(File taskData) {
@@ -60,6 +61,7 @@ public class FileBackedTasksManager extends InMemoryTaskManager{
                     taskFromString(line);
                 }
             }
+            updatePrioritizedTasks();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -198,26 +200,34 @@ public class FileBackedTasksManager extends InMemoryTaskManager{
         return task;
     }
 
+    @Override
+    public List<Task> getPrioritizedTasks() {
+       return super.getPrioritizedTasks();
+    }
+
     static void main(String[] args) {
         File file = new File("src/data/TaskData.csv");
         FileBackedTasksManager taskManager = Managers.getDefaultFileBackedTasksManager();
         FileBackedTasksManager secondTaskManager =
                 new FileBackedTasksManager(file);
-        LocalDateTime start = LocalDateTime.of(2022, 04,17, 12, 0);
-        LocalDateTime finish = LocalDateTime.of(2022, 04,20, 12, 0);
+        Duration duration = Duration.ofHours(3);
 
         long firstEpic = taskManager.createEpic(new Epic("Эпик 1", "Описание 1", Status.NEW));
         long firstSubTask = taskManager.createSubTask(new SubTask("Подзадача 1 Эпика 1",
-                "Описание", Status.NEW, start, Duration.between(start, finish), firstEpic));
+                "Описание", Status.NEW,
+                LocalDateTime.of(2022, 4,24, 12, 0), duration, firstEpic));
         long secondSubTask = taskManager.createSubTask(new SubTask("Подзадача 2 Эпика 1",
-                "Описание", Status.DONE, start, Duration.between(start, finish), firstEpic));
+                "Описание", Status.DONE,
+                LocalDateTime.of(2022, 4,16, 12, 0), duration, firstEpic));
         long thirdSubTask = taskManager.createSubTask(new SubTask("Подзадача 3 Эпика 1",
                 "Описание", Status.DONE, firstEpic));
 
         long secondEpic = taskManager.createEpic(new Epic("Эпик 2", "Описание 2", Status.IN_PROGRESS));
 
-        long firstTask = taskManager.createTask(new Task("Задача 1", "Описание", Status.IN_PROGRESS, start, Duration.between(start, finish)));
-        long secondTask = taskManager.createTask(new Task("Задача 2", "Описание", Status.DONE, start, Duration.between(start, finish)));
+        long firstTask = taskManager.createTask(new Task("Задача 1", "Описание", Status.IN_PROGRESS,
+                LocalDateTime.of(2022, 4,24, 20, 0), duration));
+        long secondTask = taskManager.createTask(new Task("Задача 2", "Описание", Status.DONE,
+                LocalDateTime.of(2022, 4,24, 19, 0), Duration.ofHours(1)));
 
         taskManager.getByID(firstEpic);
         taskManager.getByID(firstEpic);
@@ -233,7 +243,7 @@ public class FileBackedTasksManager extends InMemoryTaskManager{
         System.out.println(taskManager.getEpicList());
         System.out.println(taskManager.getTaskList());
         System.out.println(taskManager.getSubTaskList());
-
+        System.out.println(taskManager.getPrioritizedTasks());
         loadFromFile(file);
 
         System.out.println("История" + secondTaskManager.history());
@@ -241,5 +251,6 @@ public class FileBackedTasksManager extends InMemoryTaskManager{
         System.out.println(secondTaskManager.getEpicList());
         System.out.println(secondTaskManager.getTaskList());
         System.out.println(secondTaskManager.getSubTaskList());
+        System.out.println(taskManager.getPrioritizedTasks());
     }
 }

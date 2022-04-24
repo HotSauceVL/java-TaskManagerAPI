@@ -42,13 +42,13 @@ public class SubTask extends Task {
 
     @Override
     public String taskToString() {
-        if (startTime == null) {
+        if (startTime.isEmpty()) {
             return String.format("%s,%s,%s,%s,%s,%s\n", super.getId(), TaskType.SUBTASK,
                     super.getTitle(), super.getStatus(), super.getDescription(), this.epicID);
         } else {
             return String.format("%s,%s,%s,%s,%s,%s,%s,%s\n", super.getId(), TaskType.SUBTASK,
                     super.getTitle(), super.getStatus(), super.getDescription(),
-                    this.epicID, startTime.format(formatter), duration.toString());
+                    this.epicID, startTime.get().format(formatter), duration.toString());
         }
     }
 }
