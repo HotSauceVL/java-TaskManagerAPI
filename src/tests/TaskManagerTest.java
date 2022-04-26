@@ -326,15 +326,15 @@ abstract class TaskManagerTest <T extends TaskManager> {
 
         assertEquals(4 , taskManager.getPrioritizedTasks().size(),
                 "Не все задачи добавлены в список приоритетных задач");
-        assertEquals(taskManager.getByID(task1Id), taskManager.getPrioritizedTasks().get(0),
+        assertEquals(taskManager.getByID(task1Id), taskManager.getPrioritizedTasks().toArray()[0],
                 "Приоритет задач рассчитывается с ошибкой");
-        assertEquals(taskManager.getByID(subTask1Id), taskManager.getPrioritizedTasks().get(1),
+        assertEquals(taskManager.getByID(subTask1Id), taskManager.getPrioritizedTasks().toArray()[1],
                 "Приоритет задач рассчитывается с ошибкой," +
                         " при совпадении даты старта новой задачи с датой окончания предыдущей");
-        assertEquals(taskManager.getByID(subTask2Id), taskManager.getPrioritizedTasks().get(2),
+        assertEquals(taskManager.getByID(subTask2Id), taskManager.getPrioritizedTasks().toArray()[2],
                 "Приоритет задач рассчитывается с ошибкой," +
                         " при совпадении даты старта новой задачи с датой окончания предыдущей");
-        assertEquals(taskManager.getByID(task2Id), taskManager.getPrioritizedTasks().get(3),
+        assertEquals(taskManager.getByID(task2Id), taskManager.getPrioritizedTasks().toArray()[3],
                 "Приоритет задач рассчитывается с ошибкой, пустая задача не перемещается в конец списка");
 
 

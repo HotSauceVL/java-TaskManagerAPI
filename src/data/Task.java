@@ -22,6 +22,7 @@ public class Task {
         this.status = status;
         this.startTime = Optional.empty();
         this.duration = Duration.ZERO;
+        this.id = 0;
     }
 
     public Task (long id, String title, String description, Status status) {
@@ -38,11 +39,11 @@ public class Task {
         this.status = status;
         this.startTime = Optional.of(startTime);
         this.duration = duration;
+        this.id = 0;
     }
 
     public Task(long id, String title, String description, Status status, LocalDateTime startTime, Duration duration) {
-        this.id = id;// появился вопрос, насколько корректен с точки зрения Инкапсуляции
-        // конструктор с возможностью задать id?
+        this.id = id;
         this.title = title;
         this.description = description;
         this.status = status;

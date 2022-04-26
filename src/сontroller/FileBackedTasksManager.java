@@ -6,6 +6,7 @@ import exception.ManagerSaveException;
 import java.io.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -14,6 +15,7 @@ public class FileBackedTasksManager extends InMemoryTaskManager{
     public  FileBackedTasksManager(File taskData) {
         this.taskData = taskData;
     }
+
 
     private void save() {
         try (Writer fileWriter = new FileWriter(taskData)) {
@@ -46,6 +48,8 @@ public class FileBackedTasksManager extends InMemoryTaskManager{
             String line;
             boolean isHistoryString = false;
 
+            Managers.getDefaultTaskManager().deleteAllEpic();
+            Managers.getDefaultTaskManager().deleteAllTask();
             while (fileReader.ready()) {
                 line = fileReader.readLine();
                 if (line.equals("id,type,name,status,description,epic,startTime,duration")) {
@@ -61,7 +65,6 @@ public class FileBackedTasksManager extends InMemoryTaskManager{
                     taskFromString(line);
                 }
             }
-            updatePrioritizedTasks();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -73,43 +76,35 @@ public class FileBackedTasksManager extends InMemoryTaskManager{
         String[] splitValue = value.split(",");
         if (splitValue[1].equals(String.valueOf(TaskType.TASK))) {
             if (splitValue.length == 5) {
-                putTask(new Task(Long.parseLong(splitValue[0]), splitValue[2], splitValue[4],
-                        Status.valueOf(splitValue[3])));
+                Managers.getDefaultTaskManager().createTask(new Task(Long.parseLong(splitValue[0]), splitValue[2],
+                        splitValue[4], Status.valueOf(splitValue[3])));
             } else {
-                putTask(new Task(Long.parseLong(splitValue[0]), splitValue[2], splitValue[4],
-                        Status.valueOf(splitValue[3]), LocalDateTime.parse(splitValue[5],
-                        Task.getFormatter()), Duration.parse(splitValue[6])));
+                Managers.getDefaultTaskManager().createTask(new Task(Long.parseLong(splitValue[0]), splitValue[2],
+                        splitValue[4], Status.valueOf(splitValue[3]),
+                        LocalDateTime.parse(splitValue[5], Task.getFormatter()), Duration.parse(splitValue[6])));
             }
         } else if (splitValue[1].equals(String.valueOf(TaskType.EPIC))) {
-            putEpic(new Epic(Long.parseLong(splitValue[0]), splitValue[2], splitValue[4],
-                    Status.valueOf(splitValue[3])));
+            Managers.getDefaultTaskManager().createEpic(new Epic(Long.parseLong(splitValue[0]), splitValue[2],
+                    splitValue[4], Status.valueOf(splitValue[3])));
         } else if (splitValue[1].equals(String.valueOf(TaskType.SUBTASK))) {
             if (splitValue.length == 6) {
-                putSubTask(new SubTask(Long.parseLong(splitValue[0]), splitValue[2], splitValue[4],
-                        Status.valueOf(splitValue[3]), Long.parseLong(splitValue[5])));
-                epic.get(Long.parseLong(splitValue[5])).addSubTask(Long.parseLong(splitValue[0]));
+                Managers.getDefaultTaskManager().createSubTask(new SubTask(Long.parseLong(splitValue[0]), splitValue[2],
+                        splitValue[4], Status.valueOf(splitValue[3]), Long.parseLong(splitValue[5])));
             } else {
-                putSubTask(new SubTask(Long.parseLong(splitValue[0]), splitValue[2], splitValue[4],
-                        Status.valueOf(splitValue[3]), LocalDateTime.parse(splitValue[6],
+                Managers.getDefaultTaskManager().createSubTask(new SubTask(Long.parseLong(splitValue[0]), splitValue[2],
+                        splitValue[4], Status.valueOf(splitValue[3]), LocalDateTime.parse(splitValue[6],
                         Task.getFormatter()), Duration.parse(splitValue[7]), Long.parseLong(splitValue[5])));
-                epic.get(Long.parseLong(splitValue[5])).addSubTask(Long.parseLong(splitValue[0]));
             }
         }
         setTaskID(Long.max(Long.parseLong(splitValue[0]), getTaskID()));
     }
 
+
+
     private static void historyFromString(String history) {
         String[] splitHistory = history.split(",");
         for (String id : splitHistory) {
-            if (task.containsKey(Long.parseLong(id))) {
-                Managers.getDefaultHistoryManager().add(task.get(Long.parseLong(id)));
-            }
-            if (epic.containsKey(Long.parseLong(id))) {
-                Managers.getDefaultHistoryManager().add(epic.get(Long.parseLong(id)));
-            }
-            if (subTask.containsKey(Long.parseLong(id))) {
-                Managers.getDefaultHistoryManager().add(subTask.get(Long.parseLong(id)));
-            }
+            Managers.getDefaultTaskManager().getByID(Long.parseLong(id));
         }
 
     }
@@ -201,15 +196,14 @@ public class FileBackedTasksManager extends InMemoryTaskManager{
     }
 
     @Override
-    public List<Task> getPrioritizedTasks() {
+    public Collection<Task> getPrioritizedTasks() {
        return super.getPrioritizedTasks();
     }
 
     static void main(String[] args) {
         File file = new File("src/data/TaskData.csv");
-        FileBackedTasksManager taskManager = Managers.getDefaultFileBackedTasksManager();
-        FileBackedTasksManager secondTaskManager =
-                new FileBackedTasksManager(file);
+        TaskManager taskManager = new FileBackedTasksManager(file);
+        TaskManager secondTaskManager = Managers.getDefaultTaskManager();
         Duration duration = Duration.ofHours(3);
 
         long firstEpic = taskManager.createEpic(new Epic("Эпик 1", "Описание 1", Status.NEW));
@@ -244,13 +238,13 @@ public class FileBackedTasksManager extends InMemoryTaskManager{
         System.out.println(taskManager.getTaskList());
         System.out.println(taskManager.getSubTaskList());
         System.out.println(taskManager.getPrioritizedTasks());
+
         loadFromFile(file);
 
         System.out.println("История" + secondTaskManager.history());
-
         System.out.println(secondTaskManager.getEpicList());
         System.out.println(secondTaskManager.getTaskList());
         System.out.println(secondTaskManager.getSubTaskList());
-        System.out.println(taskManager.getPrioritizedTasks());
+        System.out.println(secondTaskManager.getPrioritizedTasks());
     }
 }

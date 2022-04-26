@@ -3,6 +3,8 @@ package сontroller;
 import data.Epic;
 import data.SubTask;
 import data.Task;
+
+import java.util.Collection;
 import java.util.List;
 
 public interface TaskManager {
@@ -22,5 +24,5 @@ public interface TaskManager {
     Task getByID(long id);
     List<SubTask> getEpicSubTasks(long epicID);
     List<Task> history();
-    List<Task> getPrioritizedTasks();
+    Collection<Task> getPrioritizedTasks();
 }

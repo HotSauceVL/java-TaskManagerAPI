@@ -5,6 +5,8 @@ import data.SubTask;
 import org.junit.jupiter.api.Test;
 import сontroller.FileBackedTasksManager;
 import сontroller.Managers;
+import сontroller.TaskManager;
+
 import java.io.File;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -18,16 +20,16 @@ class FileBackedTasksManagerTest extends TaskManagerTest<FileBackedTasksManager>
     @Test
     public void saveLoadTest() {
         taskManager.deleteAllEpic();
-        taskManager.deleteAllSubTask();
         taskManager.deleteAllTask();
+        TaskManager secondTaskManager = Managers.getDefaultTaskManager();
         FileBackedTasksManager.loadFromFile(file);
-        assertEquals(0, taskManager.getEpicList().size(), "Эпики загрузились с ошибкой");
-        assertEquals(0, taskManager.getTaskList().size(), "Задачи загрузились с ошибкой");
-        assertEquals(0, taskManager.getSubTaskList().size(), "Подзадачи загрузились с ошибкой");
+        assertEquals(0, secondTaskManager.getEpicList().size(), "Эпики загрузились с ошибкой");
+        assertEquals(0, secondTaskManager.getTaskList().size(), "Задачи загрузились с ошибкой");
+        assertEquals(0, secondTaskManager.getSubTaskList().size(), "Подзадачи загрузились с ошибкой");
 
         long epic2Id = taskManager.createEpic(epic2);
         FileBackedTasksManager.loadFromFile(file);
-        assertEquals(epic2, taskManager.getByID(epic2Id), "Пустой эпик загрузился с ошибкой");
+        assertEquals(epic2, secondTaskManager.getByID(epic2Id), "Пустой эпик загрузился с ошибкой");
         taskManager.deleteAllEpic();
 
         long epic1Id = taskManager.createEpic(epic1);
@@ -39,10 +41,10 @@ class FileBackedTasksManagerTest extends TaskManagerTest<FileBackedTasksManager>
         long task1Id = taskManager.createTask(task1);
         long task2Id = taskManager.createTask(task2);
         FileBackedTasksManager.loadFromFile(file);
-        assertEquals(2, taskManager.getEpicList().size(), "Эпики загрузились с ошибкой");
-        assertEquals(2, taskManager.getTaskList().size(), "Задачи загрузились с ошибкой");
-        assertEquals(2, taskManager.getSubTaskList().size(), "Подзадачи загрузились с ошибкой");
-        assertEquals(0, taskManager.history().size(), "Пустая история загрузилась с ошибкой");
+        assertEquals(2, secondTaskManager.getEpicList().size(), "Эпики загрузились с ошибкой");
+        assertEquals(2, secondTaskManager.getTaskList().size(), "Задачи загрузились с ошибкой");
+        assertEquals(2, secondTaskManager.getSubTaskList().size(), "Подзадачи загрузились с ошибкой");
+        assertEquals(0, secondTaskManager.history().size(), "Пустая история загрузилась с ошибкой");
 
         taskManager.getByID(epic1Id);
         taskManager.getByID(task1Id);
@@ -51,9 +53,9 @@ class FileBackedTasksManagerTest extends TaskManagerTest<FileBackedTasksManager>
         taskManager.getByID(subTask2Id);
         taskManager.getByID(task2Id);
         FileBackedTasksManager.loadFromFile(file);
-        assertEquals(6, taskManager.history().size(), "История загрузилась с ошибкой");
-        assertEquals(epic1, taskManager.history().get(0), "Последовательность истории загрузилась с ошибкой");
-        assertEquals(epic2, taskManager.history().get(3), "Последовательность истории загрузилась с ошибкой");
-        assertEquals(task2, taskManager.history().get(5), "Последовательность истории загрузилась с ошибкой");
+        assertEquals(6, secondTaskManager.history().size(), "История загрузилась с ошибкой");
+        assertEquals(epic1, secondTaskManager.history().get(0), "Последовательность истории загрузилась с ошибкой");
+        assertEquals(epic2, secondTaskManager.history().get(3), "Последовательность истории загрузилась с ошибкой");
+        assertEquals(task2, secondTaskManager.history().get(5), "Последовательность истории загрузилась с ошибкой");
     }
 }
