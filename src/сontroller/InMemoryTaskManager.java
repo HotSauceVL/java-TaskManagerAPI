@@ -92,9 +92,9 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void updateTask (long id, Task newTask) {
         if (task.containsKey(id)) {
+            updatePrioritizedTasks(task.get(id));
             if (isValidStartEndTime(newTask)) {
                 newTask.setId(id);
-                updatePrioritizedTasks(task.get(id));
                 task.put(id, newTask);
                 updatePrioritizedTasks(newTask);
                 InMemoryHistoryManager.update(id, newTask);
@@ -127,6 +127,7 @@ public class InMemoryTaskManager implements TaskManager {
     public void updateSubTask(long id, SubTask newSubTask) {
         if (subTask.containsKey(id)) {
             if (epic.containsKey(newSubTask.getEpicID())) {
+                updatePrioritizedTasks(subTask.get(id));
                 if (isValidStartEndTime(newSubTask)) {
                     if (subTask.get(id).getEpicID() != newSubTask.getEpicID()) {
                         epic.get(subTask.get(id).getEpicID()).deleteSubTask(id);
@@ -135,7 +136,6 @@ public class InMemoryTaskManager implements TaskManager {
                         updateEpicStartAndEndTime(subTask.get(id).getEpicID());
                     }
                     InMemoryHistoryManager.update(id, newSubTask);
-                    updatePrioritizedTasks(subTask.get(id));
                     subTask.put(id, newSubTask);
                     newSubTask.setId(id);
                     updateEpicStatus(newSubTask.getEpicID());

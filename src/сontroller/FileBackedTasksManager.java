@@ -12,12 +12,16 @@ import java.util.List;
 
 public class FileBackedTasksManager extends InMemoryTaskManager{
     private final File taskData;
+
+    public  FileBackedTasksManager() {
+        taskData = null;
+    }
     public  FileBackedTasksManager(File taskData) {
         this.taskData = taskData;
     }
 
 
-    private void save() {
+    protected void save() {
         try (Writer fileWriter = new FileWriter(taskData)) {
             fileWriter.write("id,type,name,status,description,epic,startTime,duration\n");
             if (super.getTaskList().size() != 0) {

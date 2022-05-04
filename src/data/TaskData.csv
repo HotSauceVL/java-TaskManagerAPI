@@ -1,2 +1,11 @@
 id,type,name,status,description,epic,startTime,duration
+6,TASK,Задача 1,IN_PROGRESS,Описание,24.04.2022: 20.00,PT3H
+7,TASK,Задача 2,DONE,Описание,24.04.2022: 19.00,PT1H
+1,EPIC,Эпик 1,IN_PROGRESS,Описание 1
+5,EPIC,Эпик 2,NEW,Описание 2
+2,SUBTASK,Подзадача 1 Эпика 1,NEW,Описание,1,24.04.2022: 12.00,PT3H
+3,SUBTASK,Подзадача 2 Эпика 1,DONE,Описание,1,16.04.2022: 12.00,PT3H
+4,SUBTASK,Подзадача 3 Эпика 1,DONE,Описание,1
+8,SUBTASK,Новая Подзадача 1 Эпика 2,NEW,Описание123,5
 
+5,4,2,6,3,7,1
