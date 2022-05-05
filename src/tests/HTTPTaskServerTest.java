@@ -21,6 +21,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -60,7 +61,7 @@ public class HTTPTaskServerTest {
         long task1Id = manager.createTask(new Task("Задача 1", "Описание", Status.IN_PROGRESS,
                 LocalDateTime.of(2022, 4,24, 12, 0), duration));
         long task2Id = manager.createTask(new Task("Задача 2", "Описание", Status.DONE));
-        URI url = URI.create("http://localhost:8080/tasks/task");
+        URI url = URI.create("http://localhost:8080/tasks/task/");
         HttpRequest request = HttpRequest.newBuilder().uri(url).GET().build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         JsonElement jsonElement = JsonParser.parseString(response.body());
@@ -73,7 +74,7 @@ public class HTTPTaskServerTest {
     public void getEpicsFromAPI() throws IOException, InterruptedException {
         long epic1Id = manager.createEpic(new Epic("Эпик 1", "Описание 1", Status.DONE));
         long epic2Id = manager.createEpic(new Epic("Эпик 2", "Описание 2", Status.IN_PROGRESS));
-        URI url = URI.create("http://localhost:8080/tasks/epic");
+        URI url = URI.create("http://localhost:8080/tasks/epic/");
         HttpRequest request = HttpRequest.newBuilder().uri(url).GET().build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         JsonElement jsonElement = JsonParser.parseString(response.body());
@@ -89,7 +90,7 @@ public class HTTPTaskServerTest {
                 , LocalDateTime.of(2022, 4,23, 12, 0), duration, epicId));
         long subTask2Id = manager.createSubTask(new SubTask("Подзадача 2 Эпика 1","Описание", Status.DONE
                 , epicId));
-        URI url = URI.create("http://localhost:8080/tasks/subtask");
+        URI url = URI.create("http://localhost:8080/tasks/subtask/");
         HttpRequest request = HttpRequest.newBuilder().uri(url).GET().build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         JsonElement jsonElement = JsonParser.parseString(response.body());
@@ -105,21 +106,21 @@ public class HTTPTaskServerTest {
                 , LocalDateTime.of(2022, 4,23, 12, 0), duration, epicId));
         long taskId = manager.createTask(new Task("Задача 1", "Описание", Status.IN_PROGRESS,
                 LocalDateTime.of(2022, 4,24, 12, 0), duration));
-        URI url = URI.create("http://localhost:8080/tasks/task?=" + epicId);
+        URI url = URI.create("http://localhost:8080/tasks/task/?id=" + epicId);
         HttpRequest request = HttpRequest.newBuilder().uri(url).GET().build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         JsonElement jsonElement = JsonParser.parseString(response.body());
         Epic epic = gson.fromJson(jsonElement, Epic.class);
         assertEquals(epicId, epic.getId(), "ID эпиков не совпадают");
 
-        url = URI.create("http://localhost:8080/tasks/subtask?=" + subTaskId);
+        url = URI.create("http://localhost:8080/tasks/subtask/?id=" + subTaskId);
         request = HttpRequest.newBuilder().uri(url).GET().build();
         response = client.send(request, HttpResponse.BodyHandlers.ofString());
         jsonElement = JsonParser.parseString(response.body());
         SubTask subTask = gson.fromJson(jsonElement, SubTask.class);
         assertEquals(manager.getByID(subTaskId), subTask, "Подзадачи не совпадают");
 
-        url = URI.create("http://localhost:8080/tasks/task?=" + taskId);
+        url = URI.create("http://localhost:8080/tasks/task/?id=" + taskId);
         request = HttpRequest.newBuilder().uri(url).GET().build();
         response = client.send(request, HttpResponse.BodyHandlers.ofString());
         jsonElement = JsonParser.parseString(response.body());
@@ -129,7 +130,7 @@ public class HTTPTaskServerTest {
 
     @Test
     public void addTaskViaAPI() throws IOException, InterruptedException {
-        URI url = URI.create("http://localhost:8080/tasks/task");
+        URI url = URI.create("http://localhost:8080/tasks/task/");
         Task task = new Task("Задача 1", "Описание", Status.IN_PROGRESS,
                 LocalDateTime.of(2022, 4,24, 12, 0), duration);
         HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofString(gson.toJson(task));
@@ -142,7 +143,7 @@ public class HTTPTaskServerTest {
 
     @Test
     public void addEpicViaAPI() throws IOException, InterruptedException {
-        URI url = URI.create("http://localhost:8080/tasks/epic");
+        URI url = URI.create("http://localhost:8080/tasks/epic/");
         Epic epic = new Epic("Эпик 1", "Описание 1", Status.DONE);
         HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofString(gson.toJson(epic));
         HttpRequest request = HttpRequest.newBuilder().uri(url).POST(body).build();
@@ -155,7 +156,7 @@ public class HTTPTaskServerTest {
     @Test
     public void addSubTaskViaAPI() throws IOException, InterruptedException {
         long epicId = manager.createEpic(new Epic("Эпик 1", "Описание 1", Status.DONE));
-        URI url = URI.create("http://localhost:8080/tasks/subtask");
+        URI url = URI.create("http://localhost:8080/tasks/subtask/");
         SubTask subTask = new SubTask("Подзадача 1 Эпика 1","Описание", Status.NEW
                 , LocalDateTime.of(2022, 4,23, 12, 0), duration, epicId);
         HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofString(gson.toJson(subTask));
@@ -170,7 +171,7 @@ public class HTTPTaskServerTest {
     public void updateTaskViaAPI() throws IOException, InterruptedException {
         long taskId = manager.createTask(new Task("Задача 1", "Описание", Status.IN_PROGRESS,
                 LocalDateTime.of(2022, 4,24, 12, 0), duration));
-        URI url = URI.create("http://localhost:8080/tasks/task?id=" + taskId);
+        URI url = URI.create("http://localhost:8080/tasks/task/?id=" + taskId);
         Task task = new Task("Обновленная Задача 1", "Описание", Status.IN_PROGRESS,
                 LocalDateTime.of(2022, 5,24, 12, 0), duration);
         HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofString(gson.toJson(task));
@@ -183,7 +184,7 @@ public class HTTPTaskServerTest {
     @Test
     public void updateEpicViaAPI() throws IOException, InterruptedException {
         long epicId = manager.createEpic(new Epic("Эпик 1", "Описание 1", Status.DONE));
-        URI url = URI.create("http://localhost:8080/tasks/epic?id=" + epicId);
+        URI url = URI.create("http://localhost:8080/tasks/epic/?id=" + epicId);
         Epic epic = new Epic("Обновленный Эпик 1", "Описание 1", Status.DONE);
         HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofString(gson.toJson(epic));
         HttpRequest request = HttpRequest.newBuilder().uri(url).POST(body).build();
@@ -197,7 +198,7 @@ public class HTTPTaskServerTest {
         long epicId = manager.createEpic(new Epic("Эпик 1", "Описание 1", Status.DONE));
         long subTaskId = manager.createSubTask(new SubTask("Подзадача 1 Эпика 1","Описание", Status.NEW
                 , LocalDateTime.of(2022, 4,23, 12, 0), duration, epicId));
-        URI url = URI.create("http://localhost:8080/tasks/subtask?id=" + subTaskId);
+        URI url = URI.create("http://localhost:8080/tasks/subtask/?id=" + subTaskId);
         SubTask subTask = new SubTask(" Обновленная Подзадача 1 Эпика 1","Описание", Status.NEW
                 , LocalDateTime.of(2022, 5,23, 12, 0), duration, epicId);
         HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofString(gson.toJson(subTask));
@@ -212,7 +213,7 @@ public class HTTPTaskServerTest {
         manager.createTask(new Task("Задача 1", "Описание", Status.IN_PROGRESS,
                 LocalDateTime.of(2022, 4,24, 12, 0), duration));
         manager.createTask(new Task("Задача 2", "Описание", Status.DONE));
-        URI url = URI.create("http://localhost:8080/tasks/task");
+        URI url = URI.create("http://localhost:8080/tasks/task/");
         HttpRequest request = HttpRequest.newBuilder().uri(url).DELETE().build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode(), "Сервер не удалил задачи");
@@ -223,7 +224,7 @@ public class HTTPTaskServerTest {
     public void deleteAllEpicViaAPI() throws IOException, InterruptedException {
         manager.createEpic(new Epic("Эпик 1", "Описание 1", Status.DONE));
         manager.createEpic(new Epic("Эпик 2", "Описание 2", Status.IN_PROGRESS));
-        URI url = URI.create("http://localhost:8080/tasks/epic");
+        URI url = URI.create("http://localhost:8080/tasks/epic/");
         HttpRequest request = HttpRequest.newBuilder().uri(url).DELETE().build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode(), "Сервер не удалил эпики");
@@ -237,7 +238,7 @@ public class HTTPTaskServerTest {
                 , LocalDateTime.of(2022, 4,23, 12, 0), duration, epicId));
         manager.createSubTask(new SubTask("Подзадача 2 Эпика 1","Описание", Status.DONE
                 , epicId));
-        URI url = URI.create("http://localhost:8080/tasks/subtask");
+        URI url = URI.create("http://localhost:8080/tasks/subtask/");
         HttpRequest request = HttpRequest.newBuilder().uri(url).DELETE().build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode(), "Сервер не удалил подзадачи");
@@ -251,19 +252,19 @@ public class HTTPTaskServerTest {
                 , LocalDateTime.of(2022, 4,23, 12, 0), duration, epicId));
         long taskId = manager.createTask(new Task("Задача 1", "Описание", Status.IN_PROGRESS,
                 LocalDateTime.of(2022, 4,24, 12, 0), duration));
-        URI url = URI.create("http://localhost:8080/tasks/task?id=" + taskId);
+        URI url = URI.create("http://localhost:8080/tasks/task/?id=" + taskId);
         HttpRequest request = HttpRequest.newBuilder().uri(url).DELETE().build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode(), "Сервер не удалил задачу");
         assertEquals(0, manager.getTaskList().size(), "Задача не удалена");
 
-        url = URI.create("http://localhost:8080/tasks/subtask?id=" + subTaskId);
+        url = URI.create("http://localhost:8080/tasks/subtask/?id=" + subTaskId);
         request = HttpRequest.newBuilder().uri(url).DELETE().build();
         response = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode(), "Сервер не удалил подзадачу");
         assertEquals(0, manager.getSubTaskList().size(), "Подзадача не удалена");
 
-        url = URI.create("http://localhost:8080/tasks/epic?id=" + epicId);
+        url = URI.create("http://localhost:8080/tasks/epic/?id=" + epicId);
         request = HttpRequest.newBuilder().uri(url).DELETE().build();
         response = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode(), "Сервер не удалил эпик");
@@ -288,12 +289,47 @@ public class HTTPTaskServerTest {
 
     @Test
     public void getHistoryFromAPI() throws IOException, InterruptedException {
-
+        long epicId = manager.createEpic(new Epic("Эпик 1", "Описание 1", Status.DONE));
+        long subTask1Id = manager.createSubTask(new SubTask("Подзадача 1 Эпика 1","Описание", Status.NEW
+                , LocalDateTime.of(2022, 4,23, 12, 0), duration, epicId));
+        long taskId = manager.createTask(new Task("Задача 1", "Описание", Status.IN_PROGRESS,
+                LocalDateTime.of(2022, 4,24, 12, 0), duration));
+        manager.getByID(epicId);
+        manager.getByID(subTask1Id);
+        manager.getByID(taskId);
+        URI url = URI.create("http://localhost:8080/tasks/history");
+        HttpRequest request = HttpRequest.newBuilder().uri(url).GET().build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        JsonElement jsonElement = JsonParser.parseString(response.body());
+        List<Task> history = gson.fromJson(jsonElement.toString(), new TypeToken<List<Task>>(){}.getType());
+        assertEquals(manager.history().size(), history.size(), "Размер списка истории не совпадает");
+        assertEquals(manager.history().get(0).getTitle(), history.get(0).getTitle(),
+                "0 объект истории не совпадает");
+        assertEquals(manager.history().get(2).getTitle(), history.get(2).getTitle(),
+                "2 объект истории не совпадает");
     }
 
     @Test
     public void getPrioritizedTasksFromAPI() throws IOException, InterruptedException {
-
+        long task1Id = manager.createTask(new Task("Задача 1", "Описание", Status.IN_PROGRESS,
+                LocalDateTime.of(2022, 5,5, 12, 0), duration));
+        long task2Id = manager.createTask(new Task("Задача 1", "Описание", Status.NEW,
+                LocalDateTime.of(2022, 5,7, 12, 0), duration));
+        long task3Id = manager.createTask(new Task("Задача 1", "Описание", Status.NEW));
+        URI url = URI.create("http://localhost:8080/tasks/");
+        HttpRequest request = HttpRequest.newBuilder().uri(url).GET().build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        JsonElement jsonElement = JsonParser.parseString(response.body());
+        Collection<Task> prioritizedTasks = gson.fromJson(jsonElement.toString(),
+                new TypeToken<Collection<Task>>(){}.getType());
+        assertEquals(manager.getPrioritizedTasks().size(), prioritizedTasks.size(),
+                "Размер списка не совпадает");
+        assertEquals(manager.getPrioritizedTasks().toArray()[0], prioritizedTasks.toArray()[0],
+                "Порядок задач не совпадает");
+        assertEquals(manager.getPrioritizedTasks().toArray()[1], prioritizedTasks.toArray()[1],
+                "Порядок задач не совпадает");
+        assertEquals(manager.getPrioritizedTasks().toArray()[2], prioritizedTasks.toArray()[2],
+                "Порядок задач не совпадает");
     }
 
 }

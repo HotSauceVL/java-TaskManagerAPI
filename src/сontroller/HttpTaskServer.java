@@ -39,7 +39,7 @@ public class HttpTaskServer {
 
     class TasksHandler implements HttpHandler {
         TaskManager taskManager;
-        private final Gson gson = new GsonBuilder()
+        private static final Gson gson = new GsonBuilder()
                 .registerTypeAdapter(Task.class, new TaskSerializer())
                 .registerTypeAdapter(SubTask.class, new SubTaskSerializer())
                 .registerTypeAdapter(Epic.class, new EpicSerializer())
@@ -56,46 +56,69 @@ public class HttpTaskServer {
             String response = "Что то пошло не так, проверьте путь для GET запроса или формат JSON для POST";
             String[] path = httpExchange.getRequestURI().getPath().split("/");
             String query = httpExchange.getRequestURI().getQuery();
+
             switch (httpExchange.getRequestMethod()) {
                 case "GET":
-                    if (path.length == 2) {
+                    if (path.length == 2 && httpExchange.getRequestURI().getPath().endsWith("tasks/")) {
                         response = gson.toJson(taskManager.getPrioritizedTasks());
                         rCode = 200;
                     }
-                    if (path.length == 3) {
+                    if (path.length == 3 && (httpExchange.getRequestURI().getPath().endsWith("task/") ||
+                            httpExchange.getRequestURI().getPath().endsWith("subtask/") ||
+                            httpExchange.getRequestURI().getPath().endsWith("epic/")) ||
+                            httpExchange.getRequestURI().getPath().endsWith("history")) {
+
                         if (httpExchange.getRequestURI().getPath().endsWith("history")) {
                             response = gson.toJson(taskManager.history());
+                            rCode = 200;
                         } else {
                             response = getTask(getTaskType(path), extractIdFromQuery(query));
+                            rCode = getRcode(200, response);
                         }
-                        rCode = 200;
                     }
                     if (path.length == 4 && httpExchange.getRequestURI().getPath().endsWith("epic/")) {
-                        response = gson.toJson(taskManager.getEpicSubTasks(extractIdFromQuery(query)));
-                        rCode = 200;
+                        try {
+                            response = gson.toJson(taskManager.getEpicSubTasks(extractIdFromQuery(query)));
+                            rCode = 200;
+                        } catch (IllegalArgumentException exception) {
+                            response = exception.getMessage();
+                            rCode = 400;
+                        }
                     }
                     break;
                 case "POST":
                     InputStream inputStream = httpExchange.getRequestBody();
                     String body = new String(inputStream.readAllBytes(), Charset.defaultCharset());
                     Task task;
-                    switch (getTaskType(path)) {
-                        case TASK:
-                            task = gson.fromJson(body, Task.class);
-                            rCode = postTask(getTaskType(path), extractIdFromQuery(query), task);
-                            break;
-                        case SUBTASK:
-                            task = gson.fromJson(body, SubTask.class);
-                            rCode = postTask(getTaskType(path), extractIdFromQuery(query), task);
-                            break;
-                        case EPIC:
-                            task = gson.fromJson(body, Epic.class);
-                            rCode = postTask(getTaskType(path), extractIdFromQuery(query), task);
-                            break;
+                    if (httpExchange.getRequestURI().getPath().endsWith("task/") ||
+                            httpExchange.getRequestURI().getPath().endsWith("subtask/") ||
+                            httpExchange.getRequestURI().getPath().endsWith("epic/")) {
+                        switch (getTaskType(path)) {
+                            case TASK:
+                                task = gson.fromJson(body, Task.class);
+                                response = postTask(getTaskType(path), extractIdFromQuery(query), task);
+                                rCode = getRcode(201, response);
+                                break;
+                            case SUBTASK:
+                                task = gson.fromJson(body, SubTask.class);
+                                response = postTask(getTaskType(path), extractIdFromQuery(query), task);
+                                rCode = getRcode(201, response);
+                                break;
+                            case EPIC:
+                                task = gson.fromJson(body, Epic.class);
+                                response = postTask(getTaskType(path), extractIdFromQuery(query), task);
+                                rCode = getRcode(201, response);
+                                break;
+                        }
                     }
                     break;
                 case "DELETE":
-                    rCode = deleteTask(getTaskType(path), extractIdFromQuery(query));
+                    if (httpExchange.getRequestURI().getPath().endsWith("task/") ||
+                            httpExchange.getRequestURI().getPath().endsWith("subtask/") ||
+                            httpExchange.getRequestURI().getPath().endsWith("epic/")) {
+                        response = deleteTask(getTaskType(path), extractIdFromQuery(query));
+                        rCode = getRcode(200, response);
+                    }
                     break;
                 default:
                     System.out.println("Сервер не обрабатывает такие запросы" + httpExchange.getRequestMethod());
@@ -109,81 +132,92 @@ public class HttpTaskServer {
         }
         private String getTask(TaskType taskType, long id) {
             String response = "";
-            if (id != 0) {
-                response = gson.toJson(taskManager.getByID(id));
-            } else
-                switch (taskType) {
-                    case TASK:
-                        response = gson.toJson(taskManager.getTaskList());
-                        break;
-                    case SUBTASK:
-                        response = gson.toJson(taskManager.getSubTaskList());
-                        break;
-                    case EPIC:
-                        response = gson.toJson(taskManager.getEpicList());
-                        break;
-                }
+            try {
+                if (id != 0) {
+                    response = gson.toJson(taskManager.getByID(id));
+                } else
+                    switch (taskType) {
+                        case TASK:
+                            response = gson.toJson(taskManager.getTaskList());
+                            break;
+                        case SUBTASK:
+                            response = gson.toJson(taskManager.getSubTaskList());
+                            break;
+                        case EPIC:
+                            response = gson.toJson(taskManager.getEpicList());
+                            break;
+                    }
+            } catch (IllegalArgumentException exception) {
+                response = exception.getMessage();
+            }
             return response;
         }
 
-        private int postTask(TaskType taskType, long id, Task task) {
-            int rCode = 400;
-            if (id == 0) {
-                switch (taskType) {
-                    case TASK:
-                        taskManager.createTask(task);
-                        rCode = 201;
-                        break;
-                    case SUBTASK:
-                        taskManager.createSubTask((SubTask) task);
-                        rCode = 201;
-                        break;
-                    case EPIC:
-                        taskManager.createEpic((Epic) task);
-                        rCode = 201;
-                        break;
+        private String postTask(TaskType taskType, long id, Task task) {
+            String response = "Произошла ошибка, задача не добавлена";
+            try {
+                if (id == 0) {
+                    switch (taskType) {
+                        case TASK:
+                            taskManager.createTask(task);
+                            response = "Задача успешно добавлена";
+                            break;
+                        case SUBTASK:
+                            taskManager.createSubTask((SubTask) task);
+                            response = "Подзадача успешно добавлена";
+                            break;
+                        case EPIC:
+                            taskManager.createEpic((Epic) task);
+                            response = "Эпик успешно добавлен";
+                            break;
+                    }
+                } else {
+                    switch (taskType) {
+                        case TASK:
+                            taskManager.updateTask(id, task);
+                            response = "Задача успешно обновлена";
+                            break;
+                        case SUBTASK:
+                            taskManager.updateSubTask(id, (SubTask) task);
+                            response = "Подзадача успешно обновлена";
+                            break;
+                        case EPIC:
+                            taskManager.updateEpic(id, (Epic) task);
+                            response = "Эпик успешно обновлен";
+                            break;
+                    }
                 }
-            } else {
-                switch (taskType) {
-                    case TASK:
-                        taskManager.updateTask(id, task);
-                        rCode = 201;
-                        break;
-                    case SUBTASK:
-                        taskManager.updateSubTask(id, (SubTask) task);
-                        rCode = 201;
-                        break;
-                    case EPIC:
-                        taskManager.updateEpic(id, (Epic) task);
-                        rCode = 201;
-                        break;
-                }
+            } catch (IllegalArgumentException exception) {
+                response = exception.getMessage();
             }
-
-            return rCode;
+            return response;
         }
 
-        private int deleteTask(TaskType taskType, long id) {
-            int rCode = 400;
-            if (id != 0) {
-                taskManager.deleteByID(id);
-                rCode = 200;
-            } else
-                switch (taskType) {
-                    case TASK:
-                        taskManager.deleteAllTask();
-                        rCode = 200;
-                        break;
-                    case SUBTASK:
-                        taskManager.deleteAllSubTask();
-                        rCode = 200;
-                        break;
-                    case EPIC:
-                        taskManager.deleteAllEpic();
-                        rCode = 200;
-                        break;
-                }
-            return rCode;
+        private String deleteTask(TaskType taskType, long id) {
+            String response = "Ошибка задача не удалена";
+            try {
+                if (id != 0) {
+                    taskManager.deleteByID(id);
+                    response = "Задача с id " + id + " успешно удалена";
+                } else
+                    switch (taskType) {
+                        case TASK:
+                            taskManager.deleteAllTask();
+                            response = "Все задачи успешно удалены";
+                            break;
+                        case SUBTASK:
+                            taskManager.deleteAllSubTask();
+                            response = "Все подзадачи успешно удалены";
+                            break;
+                        case EPIC:
+                            taskManager.deleteAllEpic();
+                            response = "Все эпики успешно удалены";
+                            break;
+                    }
+            } catch (IllegalArgumentException exception) {
+                response = exception.getMessage();
+            }
+            return response;
         }
 
         private TaskType getTaskType(String[] path) {
@@ -192,9 +226,20 @@ public class HttpTaskServer {
         private long extractIdFromQuery(String query) {
             if (query != null) {
                 String[] split = query.split("=");
-                return Long.parseLong(split[1]);
+                if (split.length == 2)
+                    return Long.parseLong(split[1]);
+                else
+                    return 0;
             } else
                 return 0;
+        }
+
+        private int getRcode (int successfulRCode, String response)
+        {
+            if (response.contains("успешно")) {
+                return successfulRCode;
+            } else
+                return 400;
         }
 }
 
