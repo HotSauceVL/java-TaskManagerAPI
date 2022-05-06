@@ -15,7 +15,7 @@ import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 
 public class HttpTaskServer {
-    HttpServer httpServer;
+    private HttpServer httpServer;
     private final TaskManager taskManager;
     private static final int PORT = 8080;
 
@@ -38,7 +38,7 @@ public class HttpTaskServer {
 }
 
     class TasksHandler implements HttpHandler {
-        TaskManager taskManager;
+        private TaskManager taskManager;
         private static final Gson gson = new GsonBuilder()
                 .registerTypeAdapter(Task.class, new TaskSerializer())
                 .registerTypeAdapter(SubTask.class, new SubTaskSerializer())

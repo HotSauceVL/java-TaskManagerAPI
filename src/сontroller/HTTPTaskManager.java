@@ -37,9 +37,7 @@ public class HTTPTaskManager extends FileBackedTasksManager{
             kvTaskClient.put("epics", epicsJson);
             kvTaskClient.put("subTasks", subTaskJson);
             kvTaskClient.put("history", historyJson);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
