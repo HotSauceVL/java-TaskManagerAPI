@@ -4,7 +4,7 @@ import java.io.File;
 import java.net.URI;
 
 public class Managers {
-    private final static TaskManager taskManager = new InMemoryTaskManager();
+    private static TaskManager taskManager;
     private static HistoryManager historyManager;
     private static FileBackedTasksManager fileBackedTasksManager;
     private static HTTPTaskManager httpTaskManager;
